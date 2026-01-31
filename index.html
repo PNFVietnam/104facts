@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>104 facts/title>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <style>
+        /* CSS tối giản: Căn giữa video, nền đen */
+        body { 
+            background: #000; 
+            margin: 0; padding: 0; 
+            display: flex; flex-direction: column; justify-content: center; align-items: center; 
+            height: 100vh; 
+            color: #fff; font-family: sans-serif; 
+        }
+        
+        /* Khung video responsive */
+        #player-box { width: 100%; max-width: 1000px; padding: 10px; box-sizing: border-box; }
+        video { width: 100%; aspect-ratio: 16/9; background: #000; box-shadow: 0 0 20px rgba(255,255,255,0.1); border-radius: 8px;}
+        
+        /* Thông báo lỗi và tên phim */
+        #info { text-align: center; margin-top: 15px; }
+        h1 { font-size: 1.2rem; color: #4fc3f7; margin: 0 0 10px 0; }
+        .guide { color: #888; font-size: 0.9rem; }
+        .error { color: #ff4444; font-weight: bold; display: none; }
+    </style>
+</head>
+<body>
+
+    <div id="player-box">
+        <video id="video" controls playsinline autoplay></video>
+        <div id="info">
+            <h1 id="title"></h1>
+            <div id="msg" class="guide"></div>
+            <div id="err" class="error">Không tìm thấy tên video trên đường dẫn!</div>
+        </div>
+    </div>
+
+    <script>
+        var video = document.getElementById('video');
+        var hls = new Hls();
+
+        // --- PHẦN QUAN TRỌNG NHẤT ---
+        // Tự động lấy tên folder từ đường dẫn ?v=TenFolder
+        var urlParams = new URLSearchParams(window.location.search);
+        var folderName = urlParams.get('v'); 
+
+        if (folderName) {
+            // Nếu tìm thấy tên folder trên link -> Tạo đường dẫn và phát
+            document.getElementById('title').innerText = "Đang xem: " + folderName;
+            document.getElementById('msg').style.display = 'none';
+            
+            // Đường dẫn file m3u8 = TenFolder/index.m3u8
+            var source = folderName + '/index.m3u8';
+            
+            // Gọi hàm phát
+            playHLS(source);
+        } else {
+            // Nếu không có tên folder -> Hiện hướng dẫn
+            document.getElementById('video').style.display = 'none'; // Giấu player đi
+            document.getElementById('err').style.display = 'block';
+            document.getElementById('msg').innerHTML = "Cách xem: Thêm <code>?v=Ten_Folder</code> vào cuối link.";
+        }
+
+        function playHLS(sourceUrl) {
+            if (Hls.isSupported()) {
+                hls.loadSource(sourceUrl);
+                hls.attachMedia(video);
+                hls.on(Hls.Events.MANIFEST_PARSED, function() { video.play(); });
+                // Xử lý lỗi nếu file không tồn tại
+                hls.on(Hls.Events.ERROR, function(event, data) {
+                    if(data.fatal) {
+                        document.getElementById('err').innerText = "Lỗi: Không tìm thấy file video trong folder này!";
+                        document.getElementById('err').style.display = 'block';
+                    }
+                });
+            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                video.src = sourceUrl;
+                video.addEventListener('loadedmetadata', function() { video.play(); });
+            }
+        }
+    </script>
+</body>
+</html>
